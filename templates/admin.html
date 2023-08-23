@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %} Admin {% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <!--Title Section-->
+    <div class="row ">
+        <div class="col-md-12">
+            <h1>Admin</h1>     
+        </div>
+    </div>
+
+    <!--Map-->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h2>Map</h2>
+            <div id="map"></div>
+        </div>
+    </div>
+
+
+    <!--List-->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h2>Current List of Pokemon</h2>
+            <div class="pokemon-wrapper">
+                <table id="pokelist">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                        <th>Roll</th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!--Form-->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h2>Shuffle</h2>
+            <form id="shuffle-form" method="post">
+                {% csrf_token %}
+                <label for="number">Number of Pokemon:</label>
+                <input type="number" id="number" name="number" required><br><br>
+                
+                <label for="selection">Shuffle Type:</label>
+                <select id="shuffle-type" name="shuffle-type">
+                    <option value="full">All</option>
+                    <option value="partial">Locations Only</option>
+                </select><br><br>
+                
+                <button class="btn btn-primary" type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var map = L.map('map');
+    var markers = L.layerGroup().addTo(map);
+
+    $(document).ready(function() {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            minZoom: 12,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        map.setMaxBounds(MAP_BOUNDS);
+
+        map.setView(MAP_BOUNDS.getCenter(), 12);
+
+        function renderPkmnList() {
+            $.get("{% url "mapapp:get_all_pkmn" %}", function(data){
+                $('.poke-entry').remove();
+
+                for (var i = 0; i < data.length; i++) {
+                    let pkmn = data[i];
+                    let listItem = `
+                        <tr class="poke-entry">
+                            <td class="p-3">${pkmn.id}</td>
+                            <td class="p-3">${pkmn.name}</td>
+                            <td class="p-3">${pkmn.lat}</td>
+                            <td class="p-3">${pkmn.lon}</td>
+                            <td class="p-3">${pkmn.capture_roll}</td>
+                        </tr>
+                    `;  
+
+                    $('#pokelist').append(listItem);
+
+                    let marker = L.marker([pkmn.lat, pkmn.lon]).addTo(map);
+                    marker.bindPopup(`<b>${pkmn.name}</b><br>Roll: ${pkmn.capture_roll}`);
+                }
+            });
+        }
+
+        renderPkmnList();
+
+        $('#shuffle-form').on('submit', function(e){
+            e.preventDefault();
+            var number = $('#number').val();
+            var shuffleType = $('#shuffle-type').val();
+
+            $.post("{% url "mapapp:shuffle_pkmn" %}", {
+                number: number,
+                shuffleType: shuffleType,
+            }, function(data){
+                renderPkmnList();
+                clearSessionCaptured();
+            });
+        });
+
+        
+    });
+</script>
+
+
+{% endblock %}

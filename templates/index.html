@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %} Explore Bishkek! {% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <!--Title Section-->
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Explore Bishkek</h1>
+
+            <p>
+                Start your very own pokemon adventure in Bishkek!
+            </p>
+        </div>
+    </div>
+
+    <!--Map Block-->
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <div id="map">
+            </div>
+        </div>
+    </div>
+
+
+    <!--Message Block-->
+    <div class="row mt-5 mb-5">
+        <div class="pkmn-border col-md-12 p-3">
+            <div class="border-pkball tl">
+                <img src="{% static "img/pokeball_icon.png" %}" alt="Pokeball">
+            </div>
+            <div class="border-pkball tr">
+                <img src="{% static "img/pokeball_icon.png" %}" alt="Pokeball">
+            </div>
+            <p id="pkmn-message">
+                No messages to show yet.
+            </p>
+
+            
+            <div class="border-pkball bl">
+                <img src="{% static "img/pokeball_icon.png" %}" alt="Pokeball">
+            </div>
+            <div class="border-pkball br">
+                <img src="{% static "img/pokeball_icon.png" %}" alt="Pokeball">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Pokemon Modal-->
+
+
+{% include "modal.html" %}
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    var map = L.map('map');
+    var markers = L.layerGroup().addTo(map);
+    var pkmn_to_marker = {};
+    var captured = getSessionCaptured();
+    const texts = [
+        "while you explore Bishkek",
+        "as you wander around Bishkek",
+        "amidst your Bishkek adventures",
+        "in the midst of your exploration of Bishkek",
+        "while you discover the beauty of Bishkek",
+        "as you roam the streets of Bishkek",
+        "during your exploration of Bishkek",
+        "in the process of getting to know Bishkek",
+        "while you soak in the charm of Bishkek",
+        "during your exploration of Bishkek",
+        "as you explore Bishkek",
+        "amidst your exploration of Bishkek",
+        "in the process of exploring Bishkek",
+        "while you discover Bishkek",
+        "during your Bishkek exploration",
+        "in the midst of exploring Bishkek",
+        "while you get to know Bishkek",
+        "during your investigation of Bishkek"
+    ];
+
+    const svgIcon = L.divIcon({
+        html: `<img src="{% static "img/pokemarker.svg" %}">`,
+        className: "",
+        iconSize: [120, 200],
+    });
+
+
+    $(document).ready(function () {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            minZoom: 12,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        map.setMaxBounds(MAP_BOUNDS);
+
+        map.setView(MAP_BOUNDS.getCenter(), 12);
+
+        function onMapClick(e) {
+            // Get lat long of click event
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            // Ajax call to get pokemon
+            checkPkmn(L.latLng(lat, lng), function (data) {
+
+                // Clear existing pkmn markers
+                markers.clearLayers();
+
+                markers = L.layerGroup().addTo(map);
+
+                cap_count = 0
+
+                // Ping circle
+                var circle_opacity = 0.7;
+
+                var circle = L.circle([lat, lng], 50, {
+                    color: '#6A47B8',
+                    fillColor: '#475CB8',
+                    opacity: circle_opacity,
+                    fillOpacity: circle_opacity
+                }).addTo(map);
+
+                var circlePoller = setInterval(function () {
+                    circle.setRadius(circle.getRadius() + 50);
+                    circle_opacity -= 0.025;
+                    circle.setStyle({
+                        opacity: circle_opacity,
+                        fillOpacity: circle_opacity
+                    });
+                    if (circle.getRadius() > 2000) {
+                        clearInterval(circlePoller);
+                        map.removeLayer(circle);
+                    }
+                }, 25);
+
+                // Add new pokemon markers
+                for (var i = 0; i < data.length; i++) {
+                    // Skip if pokemon is already captured in this particular session
+                    if (captured.includes(data[i].id)) {
+                        cap_count++;
+                        continue;
+                    }
+
+                    var pkmn = data[i];
+                    var pkmn_marker = L.marker([pkmn.lat, pkmn.lon], {
+                        icon: svgIcon,
+                        width: 24,
+                        height: 40
+                    })
+
+                    pkmn_to_marker[pkmn.id] = pkmn_marker;
+
+                    var popup_content = `
+                        <div>
+                            <div class="pkmn-id text-center">#${pkmn.id}</div>
+                            <div class="pkmn-name text-center"><b>${pkmn.name}</b></div>
+                            <div class="text-center"><img src="${pkmn.img}"></div>
+                            <div class="text-center">
+                            <button type="button" class="btn btn-primary capture-btn" data-toggle="modal" data-target="#pkmn-modal" data-id="${pkmn.id}">
+                                View & Capture    
+                            </button>
+                            </div>
+                        </div>
+                    `;
+
+                    pkmn_marker.bindPopup(popup_content).openPopup();
+                    markers.addLayer(pkmn_marker);
+                }
+
+                // Update message section with randomized text and number of pkmn found
+                var random_text = texts[Math.floor(Math.random() * texts.length)];
+
+                $('#pkmn-message').text("You found " + (data.length - cap_count) + " pokemon" + " " +
+                    random_text + '!');
+            });
+        }
+
+        map.on('click', onMapClick);
+
+
+        // Capture button handler
+        $('body').on('click', '.capture-btn', function (e) {
+            e.preventDefault();
+            var pkmn_id = $(this).data('id');
+
+            $.get("https://pokeapi.co/api/v2/pokemon/" + pkmn_id, function (data) {
+                // Update modal with pokemon details
+                $('#pkmn-modal .modal-pkmn-name').html(data.name);
+
+                $('#pkmn-modal .modal-sprite').attr('src', data.sprites.front_default);
+
+                $('#pkmn-modal .run-btn').show();
+                $('#pkmn-modal .roll-btn').show();
+                $('#pkmn-modal .leave-btn').hide();
+
+                $('#pkmn-modal .roll-btn').attr('data-id', pkmn_id);
+                $('#pkmn-modal .run-btn').attr('data-id', pkmn_id);
+
+                $('#pkmn-modal .roll-message').html("Roll a d20 to capture " + data.name + "!");
+
+                $('#pkmn-modal').modal('show');
+            });
+        }); 
+
+        // Run button handler
+        $('body').on('click', '.run-btn', function () {
+            var pkmn_id = $('#pkmn-modal .run-btn').attr('data-id');
+
+            // Remove marker from map
+            //marker_to_remove = pkmn_to_marker[pkmn_id]._leaflet_id;
+            //markers.removeLayer(marker_to_remove);
+
+            
+            // Clear existing pkmn markers
+            markers.clearLayers();
+
+            // Update message
+            $('#pkmn-message').text("You ran away!");
+            $('#pkmn-modal').modal('hide');
+        });
+
+        // Diceroll handler
+        $('body').on('click', '.roll-btn', function () {
+            var pkmn_id = $('#pkmn-modal .roll-btn').attr('data-id');
+
+            // Temporarily disable pointer events
+            $('body').css('pointer-events', 'none')
+
+            //Dice animation
+            var dice_poller = setInterval(function () {
+                var dice = Math.floor(Math.random() * 20) + 1;
+                $('#pkmn-modal .dice-number').html(dice);
+            }, 100);
+
+            // Hide buttons while rolling
+            $('#pkmn-modal .run-btn').hide();
+            $('#pkmn-modal .roll-btn').hide();
+
+            $.get("{% url "mapapp:capture_pkmn" %}", {
+                    pkmn_id: pkmn_id
+                },
+                function (data) {
+
+                    pkmn_details = data.pkmn_info;
+
+                    setTimeout(function () {
+                        clearInterval(dice_poller);
+                        
+                        $('body').css('pointer-events', 'all')
+                        $('#pkmn-modal .dice-number').html(data.roll + data.roll_bonus);
+
+                        // Post diceroll
+                        // Remove marker from map
+                        //marker_to_remove = pkmn_to_marker[pkmn_id]._leaflet_id;
+
+                        //markers.removeLayer(marker_to_remove);
+                        
+                        // Clear existing pkmn markers
+                        markers.clearLayers();
+
+                        // Add pokemon to captured list
+                        captured.push(pkmn_id);
+                        sessionStorage.setItem('captured', JSON.stringify(captured));
+
+                        // Update message section
+                        if (data.success) {
+                            if (data.roll==20) {
+                                $('#pkmn-modal .dice-number').html(20);
+
+                                $('#pkmn-message').html("You captured <span class='pkmn-name'>" + pkmn_details.name + "</span> with a critical success!");
+
+                                $('#pkmn-modal .roll-message').html("You captured <span class='pkmn-name'>" + pkmn_details.name + "</span> with a critical success!");
+                            } else {
+                                $('#pkmn-message').html("You captured <span class='pkmn-name'>" + pkmn_details.name + "</span> with a roll of " + (data.roll + data.roll_bonus) +"! " + data.roll_requirement + " required.");
+
+                                $('#pkmn-modal .roll-message').html("You captured <span class='pkmn-name'>" + pkmn_details.name + "</span> with a roll of " + (data.roll + data.roll_bonus) +"! " + data.roll_requirement + " required.");
+                            }
+                        } else {
+                            if (data.roll == 1) {
+                                $('#pkmn-modal .dice-number').html(1);
+
+                                $('#pkmn-message').html("You failed to capture <span class='pkmn-name'>" + pkmn_details.name + "</span> with a critical failure!");
+
+                                $('#pkmn-modal .roll-message').html("You failed to capture <span class='pkmn-name'>" + pkmn_details.name + "</span> with a critical failure!");
+                            } else {
+                                $('#pkmn-message').html("You failed to capture <span class='pkmn-name'>" + pkmn_details.name + "</span> with a roll of " + (data.roll + data.roll_bonus) + "! " + data.roll_requirement + " required. Wild " + pkmn_details.name + " ran away!");
+
+                                $('#pkmn-modal .roll-message').html("You failed to capture <span class='pkmn-name'>" + pkmn_details.name + "</span> with a roll of " + (data.roll + data.roll_bonus) + "! " + data.roll_requirement + " required. Wild " + pkmn_details.name + " ran away!");
+                            }
+                        }
+
+
+                        // Show leave button after user is presented with result
+                        $('#pkmn-modal .leave-btn').show();
+                    }, 3000);
+                });
+        });
+
+        // Leave button handler
+        $('body').on('click', '.leave-btn', function () {
+            $('#pkmn-modal').modal('hide');
+        });
+
+
+
+        // Given lat long, make ajax call and return a list of pokemon and their positions
+        function checkPkmn(latlng, callback) {
+            let lat = latlng.lat;
+            let lng = latlng.lng;
+
+            $.get("{% url "mapapp:check_pkmn" %}", {
+                    lat: lat,
+                    lng: lng
+                },
+                function (data) {
+                    callback(data);
+                });
+        }
+
+    });
+</script>
+{% endblock %}
+```

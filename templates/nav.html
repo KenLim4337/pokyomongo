@@ -1,0 +1,27 @@
+<!--Navbar-->
+
+<header class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        {% if user.is_authenticated %}
+            <div class="user-info ms-3 me-3">
+                Welcome, {{ user.username }}!
+            </div>
+        {% endif%}
+        <ul class="navbar-nav mr-auto">
+            {% if user.is_authenticated %}
+                <li class="nav-item"><a class="nav-link" href="{% url "mapapp:home" %}" class="login-btn">Map</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url "mapapp:pokedex" %}" class="login-btn">Pokedex</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url "mapapp:logout" %}" class="login-btn">Logout</a></li>
+            {% else %}
+                <li class="nav-item"><a class="nav-link" href="{% url "mapapp:login" %}" class="login-btn">Login</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url "mapapp:signup" %}" class="login-btn">Signup</a></li>
+            {% endif %}
+    
+            {% if user.is_superuser %}
+                <li class="mobo-nav"><a class="nav-link" href="{% url "mapapp:admin" %}" class="login-btn">Admin</a></li>
+            {% endif %}
+        </ul>
+    
+    </nav>
+    
+</header>

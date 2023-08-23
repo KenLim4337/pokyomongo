@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %} Your Pokedex! {% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <!--Title Section-->
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Your Pokedex!</h1>     
+            
+            <p>
+                These are the pokemon that you have seen and caught! 
+            </p>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="dex-controls mb-3">
+            <button class="btn btn-primary" id="all-btn">All</button>
+            <button class="btn btn-primary" id="seen-btn">Seen</button>
+            <button class="btn btn-primary" id="caught-btn">Caught</button>
+        </div>
+        <div class="col-md-12 dex-results container row">
+            {% for pkmn in pkmn_list %}
+                <div class="col-md-3 dex-card" data-state="{{ pkmn.captured }}">
+                    <div class="dex-card-inner card m-2 p-3">
+                        <div class="dex-card-header text-center">
+                            <h3>#{{ pkmn.id }} - {{ pkmn.name }}</h3>
+                        </div>
+                        <div class="dex-card-body text-center">
+                            {% if pkmn.captured > 0 %}
+                                <img width="100" height="100" src="{{ pkmn.img }}" alt="{{ pkmn.name }}">
+    
+                                {% if pkmn.captured > 1 %}
+                                    <p>
+                                        You have caught this pokemon {{ pkmn.count }} times!
+                                    </p>
+                                {% else %}
+                                    <p>
+                                        You have seen this pokemon!
+                                    </p>
+                                {% endif %}
+    
+                            {% else %}
+                                <img width="100" height="100" src="{% static "img/questionmark.png" %}" alt="Uncaught Pokemon">
+                                
+                                <p>
+                                    You have not seen this pokemon yet!
+                                </p>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    
+                </div>
+
+            {% endfor %}
+
+        </div>
+    </div>
+    
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    $(document).ready(function(){
+        $('body').on('click', '#all-btn', function(){
+            $('.dex-card').show()
+        })
+
+        $('body').on('click', '#seen-btn', function(){
+            $('.dex-card').hide()
+            $('.dex-card[data-state="1"]').show()
+            $('.dex-card[data-state="2"]').show()
+        })
+
+        $('body').on('click', '#caught-btn', function(){
+            $('.dex-card').hide()
+            $('.dex-card[data-state="2"]').show()
+        })
+    })
+</script>
+
+{% endblock %}
+```

@@ -1,0 +1,84 @@
+#map { height: 380px; }
+
+.pokemon-wrapper {
+    max-height: 600px;
+    overflow: auto;
+}
+
+.poke-entry, .dex-card-header, .pkmn-name, .modal-pkmn-name {
+    text-transform: capitalize;
+}
+
+.dice-wrapper {
+    width: 52px;
+    height: 30px;
+    background-color: #6C6;
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-weight: bold;
+}
+
+.dice-wrapper:after {
+    content: '';
+    display: block;
+    width: 0;
+    border-top: 15px solid #6C6;
+    border-left: 26px solid transparent;
+    border-right: 26px solid transparent;
+    position: absolute;
+    bottom: -15px;
+}
+
+
+.dice-wrapper:before {
+    content: '';
+    display: block;
+    width: 0;
+    border-bottom: 15px solid #6C6;
+    border-left: 26px solid transparent;
+    border-right: 26px solid transparent;
+    position: absolute;
+    top: -15px;
+}
+
+.pkmn-border {
+    border: solid 3px black;
+    position: relative;
+}
+
+.border-pkball.tl {
+    position: absolute;   
+    left: -15px;
+    top: -15px;
+    rotate: -45deg
+}
+
+.border-pkball.tr {
+    position: absolute;   
+    right: -15px;
+    top: -15px;
+    rotate: 45deg
+}
+
+.border-pkball.bl {
+    position: absolute;   
+    left: -15px;
+    bottom: -15px;
+    rotate: 225deg
+}
+
+.border-pkball.br {
+    position: absolute;   
+    right: -15px;
+    bottom: -15px;
+    rotate: 135deg
+}
+
+.border-pkball img {
+    width: 30px;
+    height: 30px;
+}
